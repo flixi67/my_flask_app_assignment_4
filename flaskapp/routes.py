@@ -1,6 +1,6 @@
 from flask import render_template, flash, redirect, url_for, request
 from flaskapp import app, db
-from flaskapp.models import BlogPost, IpView, Day
+from flaskapp.models import BlogPost, IpView, Day, UkData
 from flaskapp.forms import PostForm
 import datetime
 
@@ -49,6 +49,126 @@ def dashboard():
     graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return render_template('dashboard.html', title='Page views per day', graphJSON=graphJSON)
 
+@app.route('/student_conservative')
+@app.route('/student_conservative')
+def student_conservative():
+    # Query data from database
+    uk_data = UkData.query.all()
+    
+    # Prepare data for visualization with error handling
+    constituencies = []
+    student_percentages = []
+    conservative_votes = []
+    
+    for item in uk_data:
+        # Only include items with valid data
+        if (item.c11FulltimeStudent is not None and 
+            item.ConVote19 is not None and 
+            item.TotalVote19 is not None and 
+            item.TotalVote19 > 0):
+            
+            constituencies.append(item.constituency_name)
+            student_percentages.append(item.c11FulltimeStudent)
+            conservative_votes.append(item.ConVote19 / item.TotalVote19 * 100)
+    
+    # Create the data structure directly for Plotly.js
+    data = [{
+        'x': student_percentages,
+        'y': conservative_votes,
+        'mode': 'markers',
+        'type': 'scatter',
+        'text': constituencies,
+        'name': 'Constituencies'
+    }]
+    
+    layout = {
+        'title': 'Relationship Between Student Population and Conservative Vote Share',
+        'xaxis': {'title': 'Full-time Student Population (%)'},
+        'yaxis': {'title': 'Conservative Vote Share (%)'},
+        'hovermode': 'closest'
+    }
+    
+    # Package the data and layout together
+    fig = {'data': data, 'layout': layout}
+    
+    # Convert to JSON
+    graphJSON = json.dumps(fig)
+    
+    return render_template('uk_viz.html', title='UK Student Population vs Conservative Vote', 
+                          graphJSON=graphJSON)
+
+@app.route('/regional_party_comparison')
+@app.route('/regional_party_comparison')
+def regional_party_comparison():
+    # Query data from database
+    uk_data = UkData.query.all()
+    
+    # Prepare data for regional analysis with error handling
+    region_data = {}
+    
+    for item in uk_data:
+        # Skip items with invalid data
+        if (item.region is None or 
+            item.ConVote19 is None or 
+            item.LabVote19 is None or 
+            item.TotalVote19 is None):
+            continue
+            
+        if item.region not in region_data:
+            region_data[item.region] = {
+                'con_votes': 0, 
+                'lab_votes': 0, 
+                'total_votes': 0
+            }
+        
+        region_data[item.region]['con_votes'] += item.ConVote19
+        region_data[item.region]['lab_votes'] += item.LabVote19
+        region_data[item.region]['total_votes'] += item.TotalVote19
+    
+    # Calculate percentages
+    regions = []
+    con_percentages = []
+    lab_percentages = []
+    
+    for region, votes in sorted(region_data.items()):
+        if votes['total_votes'] > 0:
+            regions.append(region)
+            con_percentages.append(votes['con_votes'] / votes['total_votes'] * 100)
+            lab_percentages.append(votes['lab_votes'] / votes['total_votes'] * 100)
+    
+    # Create the data structure directly for Plotly.js
+    data = [
+        {
+            'x': regions,
+            'y': con_percentages,
+            'type': 'bar',
+            'name': 'Conservative',
+            'marker': {'color': 'blue'}
+        },
+        {
+            'x': regions,
+            'y': lab_percentages,
+            'type': 'bar',
+            'name': 'Labour',
+            'marker': {'color': 'red'}
+        }
+    ]
+    
+    layout = {
+        'title': 'Conservative vs Labour Vote Share by UK Region',
+        'xaxis': {'title': 'UK Region'},
+        'yaxis': {'title': 'Vote Share (%)'},
+        'barmode': 'group'
+    }
+    
+    # Package the data and layout together
+    fig = {'data': data, 'layout': layout}
+    
+    # Convert to JSON
+    graphJSON = json.dumps(fig)
+    
+    return render_template('uk_viz.html', title='Regional Party Comparison', 
+                          graphJSON=graphJSON)
 
 @app.before_request
 def before_request_func():

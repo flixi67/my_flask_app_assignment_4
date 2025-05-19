@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='main.css') }}">
+    <title>{% if title %}{{ title }}{% else %}My web app{% endif %}</title>
 </head>
 <body>
 <header>
@@ -16,6 +17,8 @@
                     <li><a href="{{ url_for('about') }}">About</a></li>
                     <li><a href="{{ url_for('new_post') }}">New post</a></li>
                     <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('student_conservative') }}">Education-vote analysis</a></li>
+                    <li><a href="{{ url_for('regional_party_comparison') }}">Regional party comparison</a></li>
                 </ul>
             </nav>
         </strong>
@@ -34,5 +37,10 @@
     {% block content %}
     {% endblock %}
 </div>
+
+<!-- Add the scripts block here at the end of the body -->
+{% block scripts %}
+{% endblock %}
+
 </body>
 </html>
